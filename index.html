@@ -87,7 +87,8 @@ button:focus-visible{outline:2px solid #f0b53c;outline-offset:2px}
 <div class="ov" id="pm"><h1>2D STRIKE</h1><small>Для игры нужны: полный экран, горизонтальный режим, экран без отключения, сохранение звания и интернет (для мультиплеера по коду).</small>
 <div id="pl" style="margin:12px;line-height:1.9;text-align:left"></div><button id="pgo" onclick="askPerm()" style="background:#2e9e4f;font-size:18px;padding:12px 40px">Разрешить и играть</button></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
 const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 const $=i=>document.getElementById(i),cv=$('c'),g=cv.getContext('2d');
 let VW,VH,Z=1,H=1;
@@ -499,7 +500,7 @@ const SNAMES=['Песок','Камуфляж','Графит','Ржавчина',
 const SK=[['Песок','#c9b27c',0,-1,0,0],['Камуфляж','#5f7a3a',0,-1,1,1],['Графит','#666666',0,-1,0,2],['Ржавчина','#a85a30',1,-1,2,3],['Океан','#2f7bd6',1,-1,0,4],['Неон-зелёный','#34d17a',2,-1,1,5],['Пурпур','#9a5be0',2,-1,2,6],['Огненный','#ff6a1a',3,-1,0,7],['Лёд','#7fe3ff',3,-1,1,8],['Кровавый','#d01b2a',4,-1,2,0],['Золотой','#f0b53c',5,-1,0,1],['Радуга','#ffffff',6,-1,0,2],['Неон-синт','#ff3df0',6,-1,1,3]];
 W.forEach((w,wi)=>{for(let j=0;j<5;j++){const rarity=[0,1,2,3,4,5,6][(wi*3+j*2)%7],wear=j;SK.push([SNAMES[(wi+j*3)%SNAMES.length]+' · '+w.n,PAL[(wi*2+j)%PAL.length],rarity,wi,wear,((wi*17+j*31)%9)]);}});
 // Старые индексы скинов заменены каталогом по оружию; eq оставлен для совместимости.
-let INV={coins:300,own:[],eq:-1,eqMap:{},history:[]};try{const j=JSON.parse(localStorage.s2dinv);if(j)INV={...INV,...j,eqMap:j.eqMap||{},history:j.history||[]}}catch(x){}
+let INV={coins:300,own:[],eq:-1,eqMap:{},history:[]};try{const j=JSON.parse(localStorage.s2dinv);if(j)INV={...INV,...j,eqMap:j.eqMap||{},history:j.history||[],agentSkinT:Number.isInteger(j.agentSkinT)?j.agentSkinT:0,agentSkinC:Number.isInteger(j.agentSkinC)?j.agentSkinC:0}}catch(x){}
 const saveInv=()=>{try{localStorage.s2dinv=JSON.stringify(INV)}catch(x){}syncAcc()};
 function invOpen(){$('inv').classList.remove('h');invR()}
 function invR(res){let h=`<div style="font-size:18px;margin:6px">🪙 ${INV.coins}</div><div class="row"><button ${INV.coins<150?'class="dis"':''} onclick="openCase(0)">📦 Стандартный кейс — 150 🪙</button><button ${INV.coins<400?'class="dis"':''} onclick="openCase(1)">💎 Премиум — 400 🪙</button></div>`;
@@ -650,7 +651,7 @@ async function loadCloudProfile(){
  if(error)throw error;
  if(data){
   if(data.banned){await forceBan(data.ban_reason);return}
-  ACC.n=data.nick||ACC.n;ACC.role=data.role||'user';INV.coins=data.coins??INV.coins;INV.own=data.owned_skins||[];INV.eq=data.equipped_skin??-1;INV.eqMap=data.equipped_map||{};
+  ACC.n=data.nick||ACC.n;ACC.role=data.role||'user';ACC.premiumUntil=data.premium_until||null;INV.coins=data.coins??INV.coins;INV.own=data.owned_skins||[];INV.eq=data.equipped_skin??-1;INV.eqMap=data.equipped_map||{};
   if(data.mode_xp&&Object.keys(data.mode_xp).length){MXP=Object.assign(z0(),data.mode_xp);MPX=Object.assign(z0(),data.mode_px||{})}
   else{for(const m of MKEYS){MXP[m]=Math.max(MXP[m],data.xp||0);MPX[m]=Math.max(MPX[m],data.px||0)}}
   svM();saveInv();showRank();
@@ -677,15 +678,86 @@ async function pollStatus(){
  }catch(e){}
 }
 setInterval(pollStatus,15000);
-function setAcc(k,u){ACC={k,n:u.n||'Игрок',role:'user',email:u.email||''};try{localStorage.s2dacc=JSON.stringify(ACC)}catch(e){}showRank()}
+function setAcc(k,u){ACC={k,n:u.n||'Игрок',role:'user',email:u.email||'',premiumUntil:null};try{localStorage.s2dacc=JSON.stringify(ACC)}catch(e){}showRank()}
 async function logout(){await sb.auth.signOut();ACC=null;SHOWC='';try{localStorage.removeItem('s2dacc')}catch(e){}showRank();acR('Вы вышли из аккаунта')}
 function chipR(){const c=$('chip');if(c)c.innerHTML=ACC?`✅ Вы вошли: ${esc(ACC.n)} <span class="rb r-${ACC.role||'user'}">${ROLE[ACC.role||'user']}</span>`:'👤 Войти по Email';
  const b=$('accb');if(b)b.innerHTML=ACC?`✅ ВЫ ВОШЛИ<em>${esc(ACC.n)} · ${ROLE[ACC.role||'user']}</em>`:'👤 ВОЙТИ / РЕГИСТРАЦИЯ<em>вход по Email</em>'}
-function acOpen(){$('ac').classList.remove('h');acR()}
+function acOpen(){$('ac').classList.remove('h');acR();refreshTelegramLinkStatus(false).then(()=>{if(!$('ac').classList.contains('h'))acR()})}
+
+// ===== TELEGRAM STARS SHOP: привязка, статус, отвязка и обновление профиля =====
+let TELEGRAM_LINK_CODE='';
+let TELEGRAM_LINK_STATUS='unknown'; // linked | unlinked | unknown
+let TELEGRAM_STATUS_BUSY=false;
+async function refreshTelegramLinkStatus(showMessage=false){
+  if(!ACC){TELEGRAM_LINK_STATUS='unknown';return false;}
+  if(TELEGRAM_STATUS_BUSY)return TELEGRAM_LINK_STATUS==='linked';
+  TELEGRAM_STATUS_BUSY=true;
+  try{
+    const {data,error}=await sb.rpc('game_get_telegram_link_status');
+    if(error)throw error;
+    TELEGRAM_LINK_STATUS=(data&&data.linked===true)?'linked':'unlinked';
+    if(TELEGRAM_LINK_STATUS==='linked')TELEGRAM_LINK_CODE='';
+    if(showMessage)acR(TELEGRAM_LINK_STATUS==='linked'?'✅ Telegram успешно привязан к этому игровому аккаунту.':'Telegram пока не привязан к этому игровому аккаунту.');
+    return TELEGRAM_LINK_STATUS==='linked';
+  }catch(e){
+    console.error('Telegram link status:',e);
+    TELEGRAM_LINK_STATUS='unknown';
+    if(showMessage)acR('Не удалось проверить привязку. Проверь, что SQL-миграция статуса Telegram установлена. '+(e.message||e));
+    return false;
+  }finally{TELEGRAM_STATUS_BUSY=false;}
+}
+async function createTelegramLinkCode(){
+  if(!ACC){acOpen();return acR('Сначала войди в игровой аккаунт');}
+  try{
+    if(await refreshTelegramLinkStatus(false))return acR('Этот игровой аккаунт уже привязан к Telegram.');
+    const {data,error}=await sb.rpc('game_create_telegram_link_code');
+    if(error)throw error;
+    TELEGRAM_LINK_CODE=String(data||'').trim().toUpperCase();
+    if(!/^[A-F0-9]{8}$/.test(TELEGRAM_LINK_CODE))throw new Error('Сервер вернул некорректный код');
+    acR('Код создан. Он действует 10 минут.');
+  }catch(e){
+    console.error('Telegram link code:',e);
+    acR('Не удалось создать код. Проверь SQL-настройку Telegram в Supabase. '+(e.message||e));
+  }
+}
+async function unlinkTelegramAccount(){
+  if(!ACC)return acR('Сначала войди в игровой аккаунт');
+  if(!confirm('Отвязать Telegram от этого игрового аккаунта?\n\nГолда, покупки, игровой профиль и премиум сохранятся.'))return;
+  try{
+    const {data,error}=await sb.rpc('game_unlink_telegram_account');
+    if(error)throw error;
+    if(!data||data.unlinked!==true)throw new Error('Для этого аккаунта активная привязка не найдена');
+    TELEGRAM_LINK_STATUS='unlinked';TELEGRAM_LINK_CODE='';
+    acR('✅ Telegram отвязан. Игровой аккаунт, голда, покупки и премиум сохранены.');
+    toast('Telegram отвязан');
+  }catch(e){
+    console.error('Telegram unlink:',e);
+    acR('Не удалось отвязать Telegram: '+(e.message||e));
+  }
+}
+async function refreshTelegramPurchase(){
+  if(!ACC)return acR('Сначала войди в игровой аккаунт');
+  try{
+    await loadCloudProfile();
+    await refreshTelegramLinkStatus(false);
+    acR('Баланс, премиум и привязка Telegram обновлены с сервера.');
+    toast('Данные обновлены');
+  }catch(e){
+    console.error('Telegram profile refresh:',e);
+    acR('Не удалось обновить профиль: '+(e.message||e));
+  }
+}
 function acR(msg){
  const o=$('acb'),m=msg?`<div class="msg">${esc(msg)}</div>`:'';
  if(ACC){
-  o.innerHTML=`<h2>✅ Вы вошли</h2><h2 style="margin-top:0">${esc(ACC.n)} <span class="rb r-${ACC.role||'user'}">${ROLE[ACC.role||'user']}</span></h2><div>${esc(ACC.email||'')}</div><div class="card" style="margin:8px;text-align:left"><b>Звания по режимам</b>${rankRows(1)}</div>${SHOWC?`<div class="card" style="margin:8px"><b>🔑 Твой код сохранения</b><div class="code" id="scode">${esc(SHOWC)}</div><div class="row"><button onclick="cp(SHOWC);toast('Скопировано')">Копировать</button><button onclick="acExp()">Скачать файл</button><button class="nx" onclick="SHOWC='';acR()">Я сохранил(а)</button></div><small>Запиши или сохрани его. Для входа нужны Email и этот код.</small></div>`:''}<small>Код сохранения хранится только у тебя. Не теряй его.</small>${m}<button onclick="acNewCode()">🔑 Новый код сохранения</button>${isA()?'<button class="big" onclick="adR()">🛠 Панель модерации</button>':''}${isC()?'<button class="big" style="border-color:#f0b53c;color:#f0b53c" onclick="opT()">👑 Открыть панель владельца</button>':''}<button onclick="logout()">Выйти</button>`;
+  o.innerHTML=`<h2>✅ Вы вошли</h2><h2 style="margin-top:0">${esc(ACC.n)} <span class="rb r-${ACC.role||'user'}">${ROLE[ACC.role||'user']}</span></h2><div>${esc(ACC.email||'')}</div><div class="card" style="margin:8px;text-align:left"><b>Звания по режимам</b>${rankRows(1)}</div>${SHOWC?`<div class="card" style="margin:8px"><b>🔑 Твой код сохранения</b><div class="code" id="scode">${esc(SHOWC)}</div><div class="row"><button onclick="cp(SHOWC);toast('Скопировано')">Копировать</button><button onclick="acExp()">Скачать файл</button><button class="nx" onclick="SHOWC='';acR()">Я сохранил(а)</button></div><small>Запиши или сохрани его. Для входа нужны Email и этот код.</small></div>`:''}<div class="card" style="margin:8px;text-align:left;border-color:#398cba">
+  <b>⭐ Telegram-магазин 2D STRIKE</b>
+  <div style="margin:6px 0">Привяжи Telegram, чтобы покупать товары за Telegram Stars.</div>
+  ${TELEGRAM_LINK_STATUS==='linked'?`<div class="msg" style="border-color:#2e9e4f;color:#8be0a0">✅ Telegram привязан к этому игровому аккаунту</div><div class="row"><button style="border-color:#d9534f;color:#ff9999" onclick="unlinkTelegramAccount()">🔓 Отвязать Telegram</button><button onclick="refreshTelegramLinkStatus(true)">↻ Проверить связь</button></div>`:TELEGRAM_LINK_STATUS==='unknown'?`<div class="msg">Статус Telegram ещё не проверен</div><div class="row"><button onclick="refreshTelegramLinkStatus(true)">↻ Проверить привязку</button></div>`:`${TELEGRAM_LINK_CODE?`<div class="code">${esc(TELEGRAM_LINK_CODE)}</div><div class="row"><button onclick="cp(TELEGRAM_LINK_CODE);toast('Код скопирован')">Копировать код</button></div><small>Открой @TwoDStrikeOfficialBot и отправь команду:<br><b>/link ${esc(TELEGRAM_LINK_CODE)}</b><br>Код действует 10 минут и используется один раз.</small>`:''}<div class="row"><button onclick="createTelegramLinkCode()">🔗 ${TELEGRAM_LINK_CODE?'Создать новый код':'Привязать Telegram'}</button><button onclick="refreshTelegramLinkStatus(true)">↻ Проверить привязку</button></div>`}
+  <div class="row"><button onclick="refreshTelegramPurchase()">↻ Обновить баланс и премиум</button></div>
+  <small>После привязки нажми «Проверить привязку». После оплаты обнови баланс и премиум.</small>
+</div>
+<small>Код сохранения хранится только у тебя. Не теряй его.</small>${m}<button onclick="acNewCode()">🔑 Новый код сохранения</button>${isA()?'<button class="big" onclick="adR()">🛠 Панель модерации</button>':''}${isC()?'<button class="big" style="border-color:#f0b53c;color:#f0b53c" onclick="opT()">👑 Открыть панель владельца</button>':''}<button onclick="logout()">Выйти</button>`;
   return;
  }
  if(pendingEmail){
@@ -991,10 +1063,12 @@ function rankRows(full){return MKEYS.map(m=>{const a=rankOf(MXP[m]),b=rankOf(MPX
  return full?`<div style="margin:6px 0;font-size:13px"><b>${MLBL[m]}</b><br><span style="color:#f0b53c">★ ${RK[a]}</span> · ${MXP[m]} XP<br><span style="color:#4fa3ff">🌐 ${RK[b]}</span> · ${MPX[m]}</div>`
  :`<div style="margin:2px;font-size:12px"><b>${MLBL[m]}:</b> <span style="color:#f0b53c">★ ${RK[a]}</span> · <span style="color:#4fa3ff">🌐 ${RK[b]}</span></div>`}).join('')}
 function showRank(){chipR();$('rk').innerHTML=(ACC?`<div style="margin:4px;color:#9fd">👤 ${esc(ACC.n)} · ${ROLE[ACC.role||'user']||''}</div>`:'')+rankRows(0)}
-function gainXP(win,k,rw){if(G&&G.cheatsUsed)return{md:sel.mode,g:0,i:rankOf(MXP[sel.mode]||0),up:false,pv:null,cheat:1};const md=sel.mode,m={duel:.5,duo:.7,comp:1,dm:.6}[md]||1,g=Math.round(((win?120:40)+k*10+rw*10)*m*[.7,1,1.3,1.6,1][sel.diff]),o=rankOf(MXP[md]||0);MXP[md]=(MXP[md]||0)+g;INV.coins+=g;let pv=null;
+function premiumActive(){return !!(ACC&&ACC.premiumUntil&&Date.parse(ACC.premiumUntil)>Date.now())}
+async function awardMatchGold(amount){if(!amount)return;if(ACC){try{const {data,error}=await sb.rpc('game_claim_match_reward',{p_won:true});if(error)throw error;if(data&&data.granted){INV.coins=Number(data.coins??INV.coins);saveInv();toast('+'+Number(data.reward||amount)+' 🪙 за победу'+(data.premium?' · Премиум x1.5':''));}else if(data&&data.reason==='cooldown'){toast('Награда за эту минуту уже получена');}}catch(e){console.warn('Match gold reward failed',e);toast('Не удалось начислить золото. Проверь SQL-настройку.');}}else{INV.coins+=amount;saveInv();}}
+function gainXP(win,k,rw){if(G&&G.cheatsUsed)return{md:sel.mode,g:0,i:rankOf(MXP[sel.mode]||0),up:false,pv:null,cheat:1};const md=sel.mode,m={duel:.5,duo:.7,comp:1,dm:.6}[md]||1,g=Math.round(((win?120:40)+k*10+rw*10)*m*[.7,1,1.3,1.6,1][sel.diff]),o=rankOf(MXP[md]||0);MXP[md]=(MXP[md]||0)+g;const premium=win&&premiumActive(),coinReward=win?(premium?38:25):0;if(coinReward)awardMatchGold(coinReward);let pv=null;
  if(NET.on){const o2=rankOf(MPX[md]||0),d=(win?150:-60)+k*8;MPX[md]=Math.max(0,(MPX[md]||0)+d);pv={d,i:rankOf(MPX[md]),up:rankOf(MPX[md])>o2,dn:rankOf(MPX[md])<o2}}
- svM();saveInv();return{md,g,i:rankOf(MXP[md]),up:rankOf(MXP[md])>o,pv}}
-const xpHTML=r=>r? r.cheat?'<h3 style="color:#ffb35c">🤝 Читы использовались — матч без наград и изменения звания</h3>':`<h3 style="color:#f0b53c">${MLBL[r.md]||''}: +${r.g} XP · 🪙+${r.g} · ${RK[r.i]}${r.up?' ⬆ ПОВЫШЕНИЕ!':''}</h3>`+(r.pv?`<h3 style="color:#4fa3ff">🌐 Рейтинг игроков ${r.pv.d>=0?'+':''}${r.pv.d} · ${RK[r.pv.i]}${r.pv.up?' ⬆':''}${r.pv.dn?' ⬇':''}</h3>`:''):'';
+ svM();return{md,g,i:rankOf(MXP[md]),up:rankOf(MXP[md])>o,pv,coinReward,premium}}
+const xpHTML=r=>r? r.cheat?'<h3 style="color:#ffb35c">🤝 Читы использовались — матч без наград и изменения звания</h3>':`<h3 style="color:#f0b53c">${MLBL[r.md]||''}: +${r.g} XP · ${RK[r.i]}${r.up?' ⬆ ПОВЫШЕНИЕ!':''}</h3>${r.coinReward?`<h3 style="color:#72d6a0">🪙 +${r.coinReward} голды за победу${r.premium?' · Премиум x1.5':''}</h3>`:'<h3 style="color:#9aa3b5">🪙 За поражение золото не начисляется</h3>'}`+(r.pv?`<h3 style="color:#4fa3ff">🌐 Рейтинг игроков ${r.pv.d>=0?'+':''}${r.pv.d} · ${RK[r.pv.i]}${r.pv.up?' ⬆':''}${r.pv.dn?' ⬇':''}</h3>`:''):'';
 showRank();
 // ===== МУЛЬТИПЛЕЕР онлайн (PeerJS, короткий код) =====
 const loadPJ=()=>new Promise((ok,no)=>{if(window.Peer)return ok();const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)});
@@ -1126,12 +1200,13 @@ onkeyup=e=>{const c=kmap(e.code);if(c){keys[c]=0;if(c=='KeyV')ptt(0)}};onmousemo
 // ===== ЧАСТЬ 1: КЕЙСЫ И ИНВЕНТАРЬ =====
 INV.eqT=INV.eqT||{};INV.eqC=INV.eqC||{};
 // k = номинальные веса редкостей [Обычный..Тайный]; w = индексы оружия (null = всё + универсальные скины)
-const CSD=[{n:'Стартовый',e:'📦',p:100,c:'#9aa3b5',w:[0,1,2,3],k:[55,28,12,4,1,0,0]},
-{n:'Городской',e:'🏙',p:200,c:'#4b8bff',w:[5,6,7,8,9,10],k:[40,30,18,8,3,1,0]},
-{n:'Штурмовой',e:'🎖',p:350,c:'#b24bff',w:[11,12,13,14,15,16],k:[30,28,22,12,6,2,0]},
-{n:'Снайпер',e:'🎯',p:500,c:'#e34b4b',w:[17,18,19,20],k:[25,25,22,15,9,3,1]},
-{n:'Тяжёлый',e:'💣',p:800,c:'#f0b53c',w:[4,10,13,18,21],k:[18,24,24,19,10,4,1]},
-{n:'Легенда',e:'👑',p:1500,c:'#ffdf75',w:null,u:1,k:[5,12,22,28,20,10,3]}];
+const CSD=[{n:'Стартовый',e:'📦',p:50,c:'#9aa3b5',w:[0,1,2,3],k:[55,28,12,4,1,0,0]},
+{n:'Городской',e:'🏙',p:100,c:'#4b8bff',w:[5,6,7,8,9,10],k:[40,30,18,8,3,1,0]},
+{n:'Штурмовой',e:'🎖',p:175,c:'#b24bff',w:[11,12,13,14,15,16],k:[30,28,22,12,6,2,0]},
+{n:'Снайпер',e:'🎯',p:250,c:'#e34b4b',w:[17,18,19,20],k:[25,25,22,15,9,3,1]},
+{n:'Тяжёлый',e:'💣',p:400,c:'#f0b53c',w:[4,10,13,18,21],k:[18,24,24,19,10,4,1]},
+{n:'Легенда',e:'👑',p:750,c:'#ffdf75',w:null,u:1,k:[5,12,22,28,20,10,3]},
+{n:'Арсенал',e:'🧰',p:900,c:'#35d6c2',w:Array.from({length:22},(_,i)=>i),k:[18,22,22,18,12,6,2],agentCase:true}];
 const IV={t:'i',w:'a',r:'a',s:'r',sel:-1,pw:13,cf:-1};
 const wn=i=>SK[i][3]>=0?W[SK[i][3]].n:'Универсальный',sn=i=>SK[i][0].split(' · ')[0],
 PRC=i=>Math.round([20,45,100,220,480,950,2000][SK[i][2]]*(1.15-SK[i][4]*.07)),
@@ -1142,11 +1217,11 @@ cprob=c=>{const p=cpool(c),t=c.k.reduce((a,b)=>a+b,0),o=[0,0,0,0,0,0,0];c.k.forE
 cpick=c=>{const p=cpool(c),pr=cprob(c);let q=Math.random(),r=0;for(;r<6&&q>=pr[r];r++)q-=pr[r];if(!p[r].length)r=rfb(p,r);return p[r][Math.random()*p[r].length|0]};
 const eqNames=s=>Object.entries({...INV.eqMap,...INV['eq'+s]}).filter(([k,v])=>v>=0&&SK[v]).map(([k,v])=>W[k].n+' — '+sn(v)).join(', ')||'стандарт',
 eqSide=(i,s)=>Object.values({...INV.eqMap,...INV['eq'+s]}).includes(i);
-function invR(res){if(CASEB)return;let h=`<div class="ivt">${[['i','🎒 Предметы'],['c','📦 Кейсы'],['h','📜 История']].map(x=>`<button class="${IV.t==x[0]?'on':''}" onclick="IV.t='${x[0]}';invR()">${x[1]}</button>`).join('')}<span class="ivc">🪙 ${INV.coins}</span></div>`;
+function invR(res){if(CASEB)return;let h=`<div class="ivt">${[['i','🎒 Предметы'],['a','🪖 Агенты'],['c','📦 Кейсы'],['h','📜 История']].map(x=>`<button class="${IV.t==x[0]?'on':''}" onclick="IV.t='${x[0]}';invR()">${x[1]}</button>`).join('')}<span class="ivc">🪙 ${INV.coins}</span></div>`;
  if(res!=null){const k=SK[res],c=RC[k[2]];h+=`<div class="rw" style="--c:${c}"><b style="color:${k[1]}">${sn(res)}</b><br>${wn(res)} · <span style="color:${c}">${RN[k[2]]}</span> · ${WEAR[k[4]]}${IV.dup?`<br><small>Дубликат — автоматически продан за ${IV.dp} 🪙</small>`:''}</div>`;IV.dup=0}
- h+=IV.t=='c'?casesH():IV.t=='h'?histH():itemsH();$('ib').innerHTML=h;if(IV.t=='i')pvStart()}
-const casesH=()=>`<div class="cg">${CSD.map((c,i)=>`<div class="cc" style="--c:${c.c}"><div class="ce">${c.e}</div><b>${c.n}</b><small style="font-size:11px;color:#8a94aa">${c.w&&c.w.length<W.length?c.w.map(w=>W[w].n).join(', '):'Скины для всего оружия (без универсальных)'}</small><div class="row"><button onclick="cInfo(${i})">Шансы</button><button class="${INV.coins<c.p?'dis':'nx'}" onclick="openCase(${i})">${c.p} 🪙</button></div></div>`).join('')}</div><div id="ci"></div>`;
-function cInfo(i){const c=CSD[i],pr=cprob(c),p=cpool(c);$('ci').innerHTML=`<div class="card" style="border-color:${c.c};margin:auto;width:max-content;max-width:94vw"><b>${c.e} ${c.n}</b> · скинов: ${p.reduce((a,b)=>a+b.length,0)}`+RN.map((n,r)=>pr[r]?`<div style="color:${RC[r]}">${n}: ${(pr[r]*100).toFixed(1)}% <small>(${p[r].length} скин.)</small></div>`:'').join('')+'</div>'}
+ h+=IV.t=='c'?casesH():IV.t=='h'?histH():IV.t=='a'?agentSkinsH():itemsH();$('ib').innerHTML=h;if(IV.t=='i')pvStart()}
+const casesH=()=>`<div class="cg">${CSD.map((c,i)=>`<div class="cc" style="--c:${c.c}"><div class="ce">${c.e}</div><b>${c.n}</b><small style="font-size:11px;color:#8a94aa">${c.agentCase?'Скины агентов + все 22 вида оружия':c.w&&c.w.length<W.length?c.w.map(w=>W[w].n).join(', '):'Скины для всего оружия (без универсальных)'}</small><div class="row"><button onclick="cInfo(${i})">Шансы</button><button class="${INV.coins<c.p?'dis':'nx'}" onclick="openCase(${i})">${c.p} Goldi</button></div></div>`).join('')}</div><div id="ci"></div>`;
+function cInfo(i){const c=CSD[i];if(c.agentCase){$('ci').innerHTML=`<div class="card" style="border-color:${c.c};margin:auto;width:max-content;max-width:94vw"><b>🧰 Арсенал</b><div>35% — скин агента (7 вариантов)</div><div>65% — скин оружия (все 22 вида, все редкости)</div><small>Дубликаты автоматически компенсируются Goldi. Цена открытия: 900 Goldi.</small></div>`;return}const pr=cprob(c),p=cpool(c);$('ci').innerHTML=`<div class="card" style="border-color:${c.c};margin:auto;width:max-content;max-width:94vw"><b>${c.e} ${c.n}</b> · скинов: ${p.reduce((a,b)=>a+b.length,0)}`+RN.map((n,r)=>pr[r]?`<div style="color:${RC[r]}">${n}: ${(pr[r]*100).toFixed(1)}% <small>(${p[r].length} скин.)</small></div>`:'').join('')+'</div>'}
 const histH=()=>'<div style="max-width:560px;margin:auto">'+((INV.history||[]).map(x=>{const c=RC[x.ri]??'#9aa3b5';return `<div class="card" style="border-left:4px solid ${c}"><b>${esc(x.n)}</b>${x.wp?' · '+esc(x.wp):''} <span style="color:${c}">${esc(x.r)}</span> · ${esc(x.w)}${x.c?`<br><small>${esc(x.c)} · ${new Date(x.at).toLocaleString()}${x.d?' · дубликат (продан)':''}</small>`:''}</div>`}).join('')||'Пока пусто')+'</div>';
 function itemsH(){const L=INV.own.filter(i=>SK[i]&&(IV.w=='a'||String(SK[i][3])==IV.w)&&(IV.r=='a'||String(SK[i][2])==IV.r)),
  so={r:(a,b)=>SK[b][2]-SK[a][2],ra:(a,b)=>SK[a][2]-SK[b][2],w:(a,b)=>SK[a][3]-SK[b][3]||SK[b][2]-SK[a][2],p:(a,b)=>PRC(b)-PRC(a),n:(a,b)=>INV.own.indexOf(b)-INV.own.indexOf(a)};L.sort(so[IV.s]);
@@ -2480,6 +2555,11 @@ saveCloudProfile=async function(){
     p_knife_skin_equipped:INV.knifeSkinEquipped||{}
   });
   if(error)throw error;
+  const {error:agentError}=await sb.rpc('game_save_agent_loadout',{
+    p_agent_skin_t:Number(INV.agentSkinT)||0,
+    p_agent_skin_c:Number(INV.agentSkinC)||0
+  });
+  if(agentError)throw agentError;
 };
 const _loadCloudProfileBeforeFreeCosmetics=loadCloudProfile;
 loadCloudProfile=async function(){
@@ -2488,7 +2568,7 @@ loadCloudProfile=async function(){
     const result=await _loadCloudProfileBeforeFreeCosmetics.apply(this,arguments);
     if(!ACC)return result;
     const {data,error}=await sb.from('player_profiles')
-      .select('equipped_weapon_skins,knife_models,knife_skins,knife_type,knife_skin_equipped')
+      .select('equipped_weapon_skins,knife_models,knife_skins,knife_type,knife_skin_equipped,agent_skins,agent_skin_t,agent_skin_c')
       .eq('user_id',ACC.k).maybeSingle();
     if(error)throw error;
     if(data){
@@ -2500,6 +2580,9 @@ loadCloudProfile=async function(){
       INV.knifeSkinsOwned=Array.isArray(data.knife_skins)?data.knife_skins:[];
       INV.knifeType=Number(data.knife_type)||0;
       INV.knifeSkinEquipped=data.knife_skin_equipped||{};
+      INV.agentSkinsOwned=Array.isArray(data.agent_skins)?data.agent_skins.map(Number):[0];
+      INV.agentSkinT=Number.isInteger(Number(data.agent_skin_t))?Number(data.agent_skin_t):0;
+      INV.agentSkinC=Number.isInteger(Number(data.agent_skin_c))?Number(data.agent_skin_c):0;
       if(typeof initKnifeCollection==='function')initKnifeCollection();
       _persistInvLocalOnly();
     }
@@ -2513,6 +2596,7 @@ function _applyServerCosmeticState(data){
   if(Array.isArray(data.owned_skins))INV.own=data.owned_skins.map(Number);
   if(Array.isArray(data.knife_models))INV.knifeOwned=data.knife_models.map(Number);
   if(Array.isArray(data.knife_skins))INV.knifeSkinsOwned=data.knife_skins.map(String);
+  if(Array.isArray(data.agent_skins))INV.agentSkinsOwned=data.agent_skins.map(Number);
   if(typeof initKnifeCollection==='function')initKnifeCollection();
   _persistInvLocalOnly();
 }
@@ -2527,6 +2611,13 @@ openCase=async function(caseId=0){
     const {data,error}=await sb.rpc('game_open_case',{p_case_id:Number(caseId)});
     if(error)throw error;
     _applyServerCosmeticState(data);
+    if(data.kind==='agent_skin'){
+      const aid=Number(data.skin_id),agent=AGENT_SKINS[aid];
+      if(!agent)throw new Error('Сервер выдал неизвестный скин агента: '+data.skin_id);
+      const track=`<div class=\"secret-opening\"><div class=\"sigil\">✦</div><h2 style=\"color:#55e6d3\">СКИН АГЕНТА</h2><div class=\"secret-track\">${esc(agent.name)}</div></div>`;
+      $('ib').innerHTML=track;CASEB=1;
+      setTimeout(()=>{CASEB=0;IV.t='a';invR();toast(data.duplicate?`Дубликат агента: возвращено ${Number(data.refund)||0} Goldi`:'Получен скин агента: '+agent.name)},1900);return;
+    }
     if(data.kind==='knife_skin'){
       const prize=KNIFE_FINISHES.find(x=>x.id===data.skin_id);
       if(!prize)throw new Error('Скин ножа отсутствует в каталоге клиента: '+data.skin_id);
@@ -4395,9 +4486,9 @@ if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(TOUCH)
   };
 
   // Style traits per map: side niches, extra shortcut links, canal water.
-  const TR={fast:{niche:10,extra:9},mirash:{niche:6,extra:13,round:1},dust:{niche:8,extra:10},
-    office:{niche:11,extra:10},arena:{niche:9,extra:9,round:1},town:{niche:6,extra:13},
-    canals:{niche:9,extra:11,round:1,water:1},factory:{niche:7,extra:11}};
+  const TR={fast:{niche:8,extra:14},mirash:{niche:5,extra:18,round:1},dust:{niche:7,extra:15},
+    office:{niche:9,extra:15},arena:{niche:7,extra:14,round:1},town:{niche:5,extra:18},
+    canals:{niche:7,extra:16,round:1,water:1},factory:{niche:6,extra:16}};
 
   buildTacticalLayout=function(){
     if(!M||!M.w||!M.h)return;
@@ -4489,7 +4580,7 @@ if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(TOUCH)
     const clear=(x,y,r)=>{for(let oy=-r;oy<=r;oy++)for(let ox=-r;ox<=r;ox++){const xx=x+ox,yy=y+oy;if(xx<2||yy<2||xx>w-3||yy>h-3||grid[yy][xx]!==0&&false)return false;if(grid[yy]&&grid[yy][xx]===0)return false}return true};
     let nn=0;
     routes.forEach((r,ri)=>{if(r.wd<2)return;const hw=Math.floor(r.wd/2);
-      for(let i=tr.niche+ri%4;i<r.pts.length-tr.niche-1&&nn<18;i+=tr.niche*2+3){
+      for(let i=tr.niche+ri%4;i<r.pts.length-tr.niche-1&&nn<26;i+=Math.max(5,tr.niche*2+1)){
         const p=r.pts[i],q=r.pts[i+1],dx=q[0]-p[0],dy=q[1]-p[1],dl=Math.hypot(dx,dy)||1,side=(nn%2)?1:-1,nx2=-dy/dl*side,ny2=dx/dl*side;
         const e=[hw+2,hw+3,hw+4].map(t=>[Math.round(p[0]+nx2*t),Math.round(p[1]+ny2*t)]);
         const tip=e[2];
@@ -5146,4 +5237,79 @@ if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(TOUCH)
 })();
 
 </script>
+
+<script>
+// ===== 2D STRIKE: AGENT FINISHES + CINEMATIC MAP LIGHTING =====
+// Purely cosmetic. No movement, hitbox, damage, visibility or weapon advantage.
+const AGENT_SKINS=[
+ {name:'Стандарт',rarity:'Базовый',body:'#35485a',armor:'#667b8c',helmet:'#8293a0',trim:'#c5d0d8',mark:'#e5edf4'},
+ {name:'Пустынный рейдер',rarity:'Армейский',body:'#665238',armor:'#b18b50',helmet:'#c3a46a',trim:'#e4c98e',mark:'#f4dfa9'},
+ {name:'Городской призрак',rarity:'Редкий',body:'#252f3e',armor:'#52647c',helmet:'#7188a4',trim:'#a9c2df',mark:'#72c9ff'},
+ {name:'Неоновый штурм',rarity:'Эпический',body:'#173b3a',armor:'#168b7c',helmet:'#36b7a6',trim:'#a4fff0',mark:'#47ffe1'},
+ {name:'Красный шторм',rarity:'Эпический',body:'#49252c',armor:'#922f40',helmet:'#b94b58',trim:'#f09a91',mark:'#ffcfb5'},
+ {name:'Золотой легион',rarity:'Легендарный',body:'#493b20',armor:'#b68a32',helmet:'#d6ae55',trim:'#ffe3a0',mark:'#fff1c4'},
+ {name:'Полярный спецназ',rarity:'Легендарный',body:'#263c50',armor:'#8db6c9',helmet:'#bad8e6',trim:'#e5f7ff',mark:'#ffffff'},
+ {name:'Теневой оперативник',rarity:'Секретный',body:'#171b25',armor:'#343b4b',helmet:'#555d70',trim:'#a5a9c7',mark:'#d5caff'}
+];
+let AGENT_VIEW='T';
+function agentSkinsH(){
+ const team=AGENT_VIEW,selected=Number(INV['agentSkin'+team]||0),owned=new Set((INV.agentSkinsOwned||[0]).map(Number));
+ return `<div style="max-width:760px;margin:10px auto;text-align:left">
+ <h2 style="margin:8px 0">🪖 Скины агентов</h2>
+ <small>Открывай облики в кейсе «Арсенал» за 900 Goldi. Все облики косметические и не дают преимущества.</small>
+ <div class="row" style="margin:10px 0"><button class="${team==='T'?'on':''}" onclick="AGENT_VIEW='T';invR()">Террористы</button><button class="${team==='C'?'on':''}" onclick="AGENT_VIEW='C';invR()">Спецназ</button></div>
+ <div class="ig" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr))">${AGENT_SKINS.map((a,i)=>{const has=owned.has(i);return `<div class="ic ${selected===i&&has?'sel':''}" style="--c:${a.trim};min-height:112px;opacity:${has?1:.48}" ${has?`onclick="equipAgentSkin('${team}',${i})"`:''}><div style="height:42px;display:flex;align-items:center;justify-content:center;gap:4px"><i style="width:24px;height:30px;border-radius:9px 9px 6px 6px;background:linear-gradient(135deg,${a.helmet},${a.body});border:2px solid ${a.trim};box-shadow:0 0 12px ${a.mark}55"></i><i style="width:36px;height:28px;border-radius:9px;background:linear-gradient(135deg,${a.armor},${a.body});border:1px solid ${a.trim}"></i></div><b>${has?a.name:'🔒 Скрытый агент'}</b><small>${has?a.rarity:'Можно выбить из «Арсенала»'}</small>${selected===i&&has?'<span class="bd">Экипирован</span>':''}</div>`}).join('')}</div>
+ <small style="display:block;margin-top:10px">Открытые и экипированные скины сохраняются на сервере и доступны после входа на другом устройстве.</small>
+ </div>`;
+}
+async function equipAgentSkin(team,id){if(!['T','C'].includes(team)||!AGENT_SKINS[id]||!(INV.agentSkinsOwned||[0]).map(Number).includes(Number(id)))return;const key='agentSkin'+team,old=Number(INV[key]||0);INV[key]=Number(id);saveInv();invR();if(ACC){try{await saveCloudProfile();toast('Скин агента сохранён на сервере: '+AGENT_SKINS[id].name)}catch(e){INV[key]=old;saveInv();invR();_cloudErrHint(e);toast('Не удалось сохранить скин агента: '+(e.message||e));return}}else toast('Скин экипирован локально. Войди в аккаунт для облачного сохранения.')}
+
+// Make the player's selected agent visible, while bots use varied cosmetic outfits.
+const _startWithAgentFinishes=start0;
+start0=function(){const r=_startWithAgentFinishes.apply(this,arguments);if(Array.isArray(E))E.forEach((e,i)=>{if(e)e.agentSkin=i===0?Number(INV['agentSkin'+e.team]||0):Math.floor(Math.random()*AGENT_SKINS.length)});return r};
+const _modelWithAgentFinishes=model;
+model=function(e,me){
+ _modelWithAgentFinishes(e,me);
+ if(!e||!Number.isFinite(e.x)||!Number.isFinite(e.y))return;
+ const id=e===G?.pl?Number(INV['agentSkin'+e.team]||0):Number(e.agentSkin||0),a=AGENT_SKINS[id]||AGENT_SKINS[0],T=e.team==='T';
+ // Match the original animated body bob so the finish stays attached to the operator.
+ const phase=Number(e._renderPhase)||0,bob=e.mv?Math.sin(performance.now()/1000*8.5+phase)*.38:0;
+ g.save();g.translate(e.x,e.y+bob);g.rotate(Number(e.a)||0);
+ // Repaint the torso and helmet with the selected finish; keep the weapon drawn by the base model intact.
+ const body=g.createLinearGradient(-7,-8,7,9);body.addColorStop(0,a.armor);body.addColorStop(.55,a.body);body.addColorStop(1,'#101722');
+ g.fillStyle=body;g.strokeStyle='#080d14';g.lineWidth=1.1;g.beginPath();g.ellipse(-1,1,7.2,11.6,0,0,Math.PI*2);g.fill();g.stroke();
+ const plate=g.createLinearGradient(-5,-7,5,8);plate.addColorStop(0,a.trim);plate.addColorStop(.35,a.armor);plate.addColorStop(1,a.body);
+ g.fillStyle=plate;g.beginPath();g.roundRect(-5.5,-6.5,10,14,3);g.fill();g.strokeStyle='rgba(235,245,255,.48)';g.stroke();
+ g.fillStyle='rgba(8,14,22,.82)';g.fillRect(-3.1,-1.5,5.8,2.2);
+ g.fillStyle=a.trim;g.fillRect(-5,5,3,3.2);g.fillRect(1,5,3,3.2);
+ // Shoulder pads and small unit insignia.
+ g.fillStyle=a.armor;g.strokeStyle='#101721';g.lineWidth=.8;g.beginPath();g.ellipse(2,-7,3.3,2.8,0,0,Math.PI*2);g.fill();g.stroke();g.beginPath();g.ellipse(2,7,3.3,2.8,0,0,Math.PI*2);g.fill();g.stroke();
+ g.fillStyle=a.mark;g.fillRect(-1.2,-3.8,2.4,1.1);g.fillRect(-1.2,2.8,2.4,1.1);
+ // Helmet shell, rim, visor and side comms.
+ g.fillStyle=a.helmet;g.strokeStyle='#0c131d';g.lineWidth=1;g.beginPath();g.ellipse(7.1,0,4.8,4.5,0,0,Math.PI*2);g.fill();g.stroke();
+ g.fillStyle=a.body;g.beginPath();g.ellipse(7.2,-1.2,4.9,3.1,0,Math.PI,Math.PI*2);g.fill();
+ g.fillStyle=a.mark;g.fillRect(5.3,-3.5,3.2,.8);g.fillStyle='#101a26';g.fillRect(9.2,-1.8,3.4,1.8);
+ g.fillStyle=a.trim;g.beginPath();g.arc(10.8,2,1.05,0,Math.PI*2);g.fill();
+ // Team stripe remains recognizable regardless of selected finish.
+ g.fillStyle=T?'#ffbd68':'#77bdff';g.fillRect(-7.2,-10.8,3,1.5);
+ g.restore();
+};
+
+// Add a subtle baked light pass: warm room pools, cool corridor bounce and wall contact shadows.
+const _bakeWithCinematicLighting=bake;
+bake=function(lit){
+ const out=_bakeWithCinematicLighting.apply(this,arguments);
+ if(!lit||!GFX||!M||!M.cl)return out;
+ const q=M.cl.getContext('2d');q.save();q.globalCompositeOperation='soft-light';
+ for(const r of (M.rooms||[])){
+  const cx=(r.cx??(r.x+r.w/2))*TS+TS/2,cy=(r.cy??(r.y+r.h/2))*TS+TS/2;
+  const radius=Math.max(TS*2,Math.min(TS*7,Math.max(r.w||4,r.h||4)*TS*.58));
+  const grad=q.createRadialGradient(cx,cy,TS*.25,cx,cy,radius);grad.addColorStop(0,'rgba(255,226,175,.22)');grad.addColorStop(.58,'rgba(255,201,135,.08)');grad.addColorStop(1,'rgba(0,0,0,0)');q.fillStyle=grad;q.fillRect(cx-radius,cy-radius,radius*2,radius*2);
+ }
+ q.globalCompositeOperation='multiply';q.strokeStyle='rgba(0,0,0,.12)';q.lineWidth=TS*.17;q.lineCap='round';
+ for(const c of (M.corridors||[])){q.beginPath();q.moveTo((c.x1+.5)*TS,(c.y1+.5)*TS);q.lineTo((c.x2+.5)*TS,(c.y2+.5)*TS);q.stroke()}
+ q.restore();return out;
+};
+</script>
+
 </body></html>
